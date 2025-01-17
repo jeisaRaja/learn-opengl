@@ -1,30 +1,10 @@
 #include "../include/glad/glad.h"
+#include "shaders/shader.h"
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
 #include <bits/types/struct_timeval.h>
 #include <cmath>
 #include <iostream>
-
-unsigned int vertexShader, fragmentShader, shaderProgram;
-int success;
-char infoLog[512];
-const char *fragmentShaderSource = "#version 330 core\n"
-                                   "out vec4 FragColor;\n"
-                                   "in vec3 ourColor;\n"
-                                   "void main()\n"
-                                   "{\n"
-                                   " FragColor = vec4(ourColor, 1.0);\n"
-                                   "}\0";
-
-const char *vertexShaderSource = "#version 330 core\n"
-                                 "layout (location = 0) in vec3 aPos;\n"
-                                 "layout (location = 1) in vec3 aColor;\n"
-                                 "out vec3 ourColor;\n"
-                                 "void main()\n"
-                                 "{\n"
-                                 " gl_Position = vec4(aPos, 1.0);\n"
-                                 " ourColor = aColor;\n"
-                                 "}\0";
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
   glViewport(0, 0, width, height);
@@ -96,51 +76,15 @@ int main() {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 
-  vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-  glCompileShader(vertexShader);
-
-  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-  if (!success) {
-    glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-    std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-              << infoLog << std::endl;
-  }
-
-  fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-  glCompileShader(fragmentShader);
-
-  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-  if (!success) {
-    glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-    std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
-              << infoLog << std::endl;
-  }
-
-  shaderProgram = glCreateProgram();
-
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
-
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
-  glLinkProgram(shaderProgram);
-
-  glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-  if (!success) {
-    glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-    std::cout << "ERROR::PROGRAM::LINK::COMPILATION_FAILED\n"
-              << infoLog << std::endl;
-  }
-
   // Configure OpenGL to use line to draw primitive
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+  Shader ourShader("./shaders/shader.vs", "./shaders/shader.fs");
+
   while (!glfwWindowShouldClose(window)) {
     processInput(window);
-
-    glUseProgram(shaderProgram);
+    ourShader.use();
+    ourShader.setFloat("someUniform", 1.0f);
 
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -152,7 +96,6 @@ int main() {
   glDeleteVertexArrays(1, &VAO);
   glDeleteVertexArrays(1, &VBO);
   glDeleteVertexArrays(1, &EBO);
-  glDeleteProgram(shaderProgram);
   glfwTerminate();
   return 0;
 }
