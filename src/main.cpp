@@ -1,10 +1,38 @@
 #include "../include/glad/glad.h"
+#include "../include/stb_image/stb_image.h"
 #include "shaders/shader.h"
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
 #include <bits/types/struct_timeval.h>
 #include <cmath>
 #include <iostream>
+
+int width, height, nrChannels;
+
+unsigned int texture;
+void load_image() {
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  unsigned char *data =
+      stbi_load("./images/pebbles.jpg", &width, &height, &nrChannels, 0);
+  if (data) {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  } else {
+    std::cout << "Failed to load texture" << std::endl;
+  }
+
+  stbi_image_free(data);
+}
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
   glViewport(0, 0, width, height);
@@ -17,6 +45,7 @@ void processInput(GLFWwindow *window) {
 }
 
 int main() {
+
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -38,19 +67,15 @@ int main() {
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
   float vertices[] = {
-      -0.5f, 0.5f,  0.0f, 1.0f, 0.0f, 0.0f, // top-left
-      0.5f,  0.5f,  0.0f, 0.0f, 1.0f, 0.0f, // top-right
-      0.5f,  -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom-right
-      /*-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom-left*/
-      /*-0.8f, 0.5f,  0.0f, 0.0f, 1.0f, 0.0f, // top-left*/
-      /*0.5f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f, // top-right*/
-      /*0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom-right*/
-      /*-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom-left*/
+      // positions        // colors         // texture coords (s,t)
+      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
+      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
+      -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
+      -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left
   };
-
   unsigned int indices[] = {
       0, 1, 3, // first triangle
-      1, 2, 3, // second triangle
+      1, 2, 3  // second triangle
   };
 
   unsigned int VBO, VAO, EBO;
@@ -66,12 +91,16 @@ int main() {
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
                GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
 
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                         (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
+
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(6 * sizeof(float)));
+  glEnableVertexAttribArray(2);
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
@@ -81,13 +110,15 @@ int main() {
 
   Shader ourShader("./shaders/shader.vs", "./shaders/shader.fs");
 
+  load_image();
+
   while (!glfwWindowShouldClose(window)) {
     processInput(window);
-    ourShader.use();
-    ourShader.setFloat("someUniform", 1.0f);
 
+    glBindTexture(GL_TEXTURE_2D, texture);
+    ourShader.use();
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
