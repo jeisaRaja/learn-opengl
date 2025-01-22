@@ -1,39 +1,21 @@
 #include "../include/glad/glad.h"
+#include "../include/glm/glm.hpp"
+#include "../include/glm/gtc/matrix_transform.hpp"
+#include "../include/glm/gtc/type_ptr.hpp"
 #include "../include/stb_image/stb_image.h"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/fwd.hpp"
+#include "glm/trigonometric.hpp"
 #include "shaders/shader.h"
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
-#include <bits/types/struct_timeval.h>
-#include <cmath>
 #include <iostream>
+#include <iterator>
 
 int width, height, nrChannels;
 
 unsigned int texture;
-void load_image() {
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                  GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  unsigned char *data =
-      stbi_load("./images/pebbles.jpg", &width, &height, &nrChannels, 0);
-  if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-                 GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  } else {
-    std::cout << "Failed to load texture" << std::endl;
-  }
-
-  stbi_image_free(data);
-}
-
+void load_image(void);
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
   glViewport(0, 0, width, height);
 }
@@ -45,7 +27,6 @@ void processInput(GLFWwindow *window) {
 }
 
 int main() {
-
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -115,8 +96,21 @@ int main() {
   while (!glfwWindowShouldClose(window)) {
     processInput(window);
 
+    glClearColor(0.5f, 0.2f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     glBindTexture(GL_TEXTURE_2D, texture);
+
+    // Transform the texture and shape
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans =
+        glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+    float scaleFactor = sin((float)glfwGetTime()) * 0.5f + 1.0f;
+    trans = glm::scale(trans, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+    unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "transform");
+    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
     ourShader.use();
+
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -129,4 +123,28 @@ int main() {
   glDeleteVertexArrays(1, &EBO);
   glfwTerminate();
   return 0;
+}
+
+void load_image(void) {
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  unsigned char *data =
+      stbi_load("./images/pebbles.jpg", &width, &height, &nrChannels, 0);
+  if (data) {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  } else {
+    std::cout << "Failed to load texture" << std::endl;
+  }
+
+  stbi_image_free(data);
 }

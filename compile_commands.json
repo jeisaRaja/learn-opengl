@@ -1,0 +1,44 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Wall",
+      "-I./include/",
+      "-o",
+      "opengl",
+      "./src/main.cpp"
+    ],
+    "directory": "/home/jeisa/programming/game-engine/opengl",
+    "file": "/home/jeisa/programming/game-engine/opengl/src/main.cpp",
+    "output": "/home/jeisa/programming/game-engine/opengl/opengl"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Wall",
+      "-I./include/",
+      "-o",
+      "opengl",
+      "./src/stb_image.cpp"
+    ],
+    "directory": "/home/jeisa/programming/game-engine/opengl",
+    "file": "/home/jeisa/programming/game-engine/opengl/src/stb_image.cpp",
+    "output": "/home/jeisa/programming/game-engine/opengl/opengl"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-Wall",
+      "-I./include/",
+      "-o",
+      "opengl",
+      "./include/glad/glad.c"
+    ],
+    "directory": "/home/jeisa/programming/game-engine/opengl",
+    "file": "/home/jeisa/programming/game-engine/opengl/include/glad/glad.c",
+    "output": "/home/jeisa/programming/game-engine/opengl/opengl"
+  }
+]
