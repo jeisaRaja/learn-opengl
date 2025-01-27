@@ -6,24 +6,51 @@
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/fwd.hpp"
+#include "glm/geometric.hpp"
 #include "glm/trigonometric.hpp"
 #include "shaders/shader.h"
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
+#include <cmath>
 #include <iostream>
 
 int width, height, nrChannels;
 unsigned int texture;
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+float lastX = 400, lastY = 300;
+float yaw = -90.0f;
+float pitch = 0.0f;
+bool firstMouse = true;
+
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+float cameraSpeed = 0.05f;
 
 void load_image(void);
-
+void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
   glViewport(0, 0, width, height);
 }
 
 void processInput(GLFWwindow *window) {
+  cameraSpeed = deltaTime * 0.5f;
   if (glfwGetKey(window, GLFW_KEY_ESCAPE)) {
     glfwSetWindowShouldClose(window, true);
+  }
+  if (glfwGetKey(window, GLFW_KEY_W)) {
+    cameraPos += cameraSpeed * cameraFront;
+  }
+  if (glfwGetKey(window, GLFW_KEY_S)) {
+    cameraPos -= cameraSpeed * cameraFront;
+  }
+  if (glfwGetKey(window, GLFW_KEY_D)) {
+    cameraPos += glm::normalize(glm::cross(cameraFront, up)) * cameraSpeed;
+  }
+  if (glfwGetKey(window, GLFW_KEY_A)) {
+    cameraPos -= glm::normalize(glm::cross(cameraFront, up)) * cameraSpeed;
   }
 }
 
@@ -40,6 +67,9 @@ int main() {
     return -1;
   }
   glfwMakeContextCurrent(window);
+
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPosCallback(window, mouse_callback);
 
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cout << "Failed to initiate GLAD" << std::endl;
@@ -143,8 +173,8 @@ int main() {
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.f),
                         glm::vec3(1.0f, 1.0f, 0.0f));
-    glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -2.0f));
+    glm::mat4 view;
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     glm::mat4 projection;
     projection =
         glm::perspective(glm::radians(55.0f), 800.0f / 600.0f, 0.1f, 100.0f);
@@ -181,6 +211,10 @@ int main() {
 }
 
 void load_image(void) {
+  float currentFrame = glfwGetTime();
+  deltaTime = currentFrame - lastFrame;
+  lastFrame = currentFrame;
+
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
 
@@ -202,4 +236,36 @@ void load_image(void) {
   }
 
   stbi_image_free(data);
+}
+
+void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
+  if (firstMouse) {
+    lastX = xpos;
+    lastY = ypos;
+    firstMouse = false;
+  }
+  float xOffset = xpos - lastX;
+  float yOffset = lastY - ypos;
+  lastX = xpos;
+  lastY = ypos;
+
+  const float sensitivity = 0.1f;
+  xOffset *= sensitivity;
+  yOffset *= sensitivity;
+
+  yaw += xOffset;
+  pitch += yOffset;
+
+  if (pitch > 89.0f) {
+    pitch = 89.0f;
+  }
+  if (pitch < -89.0f) {
+    pitch = -89.0f;
+  }
+
+  glm::vec3 direction;
+  direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+  direction.y = sin(glm::radians(pitch));
+  direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+  cameraFront = glm::normalize(direction);
 }
