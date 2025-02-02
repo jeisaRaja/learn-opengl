@@ -3,6 +3,7 @@
 #include "../include/glm/gtc/matrix_transform.hpp"
 #include "../include/glm/gtc/type_ptr.hpp"
 #include "../include/stb_image/stb_image.h"
+#include "camera/camera.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/fwd.hpp"
@@ -23,11 +24,12 @@ float yaw = -90.0f;
 float pitch = 0.0f;
 bool firstMouse = true;
 
+Camera *camera;
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-float cameraSpeed = 0.05f;
+float cameraSpeed = 0.5f;
 
 void load_image(void);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
@@ -36,21 +38,21 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 }
 
 void processInput(GLFWwindow *window) {
-  cameraSpeed = deltaTime * 0.5f;
+  cameraSpeed = deltaTime * 2.f;
   if (glfwGetKey(window, GLFW_KEY_ESCAPE)) {
     glfwSetWindowShouldClose(window, true);
   }
   if (glfwGetKey(window, GLFW_KEY_W)) {
-    cameraPos += cameraSpeed * cameraFront;
+    camera->ProcessKeyboardInput(FORWARD, deltaTime);
   }
   if (glfwGetKey(window, GLFW_KEY_S)) {
-    cameraPos -= cameraSpeed * cameraFront;
+    camera->ProcessKeyboardInput(BACKWARD, deltaTime);
   }
   if (glfwGetKey(window, GLFW_KEY_D)) {
-    cameraPos += glm::normalize(glm::cross(cameraFront, up)) * cameraSpeed;
+    camera->ProcessKeyboardInput(RIGHT, deltaTime);
   }
   if (glfwGetKey(window, GLFW_KEY_A)) {
-    cameraPos -= glm::normalize(glm::cross(cameraFront, up)) * cameraSpeed;
+    camera->ProcessKeyboardInput(LEFT, deltaTime);
   }
 }
 
@@ -69,6 +71,8 @@ int main() {
   glfwMakeContextCurrent(window);
 
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+  camera = new Camera();
   glfwSetCursorPosCallback(window, mouse_callback);
 
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -131,7 +135,7 @@ int main() {
       glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
       glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)};
 
-  unsigned int VBO, VAO, EBO;
+  unsigned int VBO, VAO;
   glGenBuffers(1, &VBO);
   glGenVertexArrays(1, &VAO);
 
@@ -164,8 +168,11 @@ int main() {
 
   while (!glfwWindowShouldClose(window)) {
     processInput(window);
+    float currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
 
-    glClearColor(0.5f, 0.2f, 0.3f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -174,7 +181,7 @@ int main() {
     model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.f),
                         glm::vec3(1.0f, 1.0f, 0.0f));
     glm::mat4 view;
-    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    view = camera->GetViewMatrix();
     glm::mat4 projection;
     projection =
         glm::perspective(glm::radians(55.0f), 800.0f / 600.0f, 0.1f, 100.0f);
@@ -187,6 +194,7 @@ int main() {
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
     ourShader.use();
+    ourShader.setMat4("model", model);
 
     glBindVertexArray(VAO);
     for (unsigned int i = 0; i < 10; i++) {
@@ -211,9 +219,6 @@ int main() {
 }
 
 void load_image(void) {
-  float currentFrame = glfwGetTime();
-  deltaTime = currentFrame - lastFrame;
-  lastFrame = currentFrame;
 
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
@@ -253,19 +258,5 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
   xOffset *= sensitivity;
   yOffset *= sensitivity;
 
-  yaw += xOffset;
-  pitch += yOffset;
-
-  if (pitch > 89.0f) {
-    pitch = 89.0f;
-  }
-  if (pitch < -89.0f) {
-    pitch = -89.0f;
-  }
-
-  glm::vec3 direction;
-  direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-  direction.y = sin(glm::radians(pitch));
-  direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-  cameraFront = glm::normalize(direction);
+  camera->ProcessMouseInput(xOffset, yOffset);
 }
