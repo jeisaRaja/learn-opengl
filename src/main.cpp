@@ -1,13 +1,10 @@
 #include "../include/glad/glad.h"
-#include "../include/glm/glm.hpp"
-#include "../include/glm/gtc/matrix_transform.hpp"
 #include "../include/glm/gtc/type_ptr.hpp"
 #include "../include/stb_image/stb_image.h"
 #include "camera/camera.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/fwd.hpp"
-#include "glm/geometric.hpp"
 #include "glm/trigonometric.hpp"
 #include "shaders/shader.h"
 #include <GL/gl.h>
@@ -139,6 +136,14 @@ int main() {
   glGenBuffers(1, &VBO);
   glGenVertexArrays(1, &VAO);
 
+  unsigned int lightVAO;
+  glGenVertexArrays(1, &lightVAO);
+  glBindVertexArray(lightVAO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
+
   glBindVertexArray(VAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -146,21 +151,12 @@ int main() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
 
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                        (void *)(3 * sizeof(float)));
-  glEnableVertexAttribArray(1);
-
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                        (void *)(3 * sizeof(float)));
-  glEnableVertexAttribArray(2);
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-
   // Configure OpenGL to use line to draw primitive
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   Shader ourShader("./shaders/shader.vs", "./shaders/shader.fs");
+  Shader lightShader("./shaders/lightVertexShader.vs",
+                     "./shaders/lightFragmentShader.fs");
 
   load_image();
 
@@ -195,6 +191,12 @@ int main() {
 
     ourShader.use();
     ourShader.setMat4("model", model);
+    ourShader.setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
+    ourShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+
+    ourShader.setMat4("model", model);
+    ourShader.setMat4("projection", projection);
+    ourShader.setMat4("view", view);
 
     glBindVertexArray(VAO);
     for (unsigned int i = 0; i < 10; i++) {
@@ -208,12 +210,23 @@ int main() {
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 
+    lightShader.use();
+    lightShader.setMat4("projection", projection);
+    lightShader.setMat4("view", view);
+    glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, lightPos);
+    model = glm::scale(model, glm::vec3(0.2f));
+    glBindVertexArray(lightVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
 
   glDeleteVertexArrays(1, &VAO);
   glDeleteVertexArrays(1, &VBO);
+  glDeleteBuffers(1, &VBO);
   glfwTerminate();
   return 0;
 }
