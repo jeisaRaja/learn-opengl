@@ -2,7 +2,6 @@
 #define SHADER_H
 
 #include "../../include/glad/glad.h"
-#include "../../include/glm/glm.hpp"
 #include "glm/fwd.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include <fstream>
