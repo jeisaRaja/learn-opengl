@@ -134,6 +134,9 @@ int main() {
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
                         (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(6 * sizeof(float)));
+  glEnableVertexAttribArray(2);
 
   // Setting up the light VAO
   unsigned int lightVAO;
@@ -153,6 +156,7 @@ int main() {
                      "./shaders/lightFragmentShader.fs");
 
   load_image();
+  unsigned int diffuseMap = texture;
 
   glEnable(GL_DEPTH_TEST);
 
@@ -169,19 +173,20 @@ int main() {
     lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;
 
     ourShader.use();
-    ourShader.setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
     ourShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
     ourShader.setVec3("lightPos", lightPos);
     ourShader.setVec3("viewPos", camera->position);
 
-    ourShader.setVec3("material.ambient", glm::vec3(1.0f, 0.5f, 0.31f));
-    ourShader.setVec3("material.diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
+    ourShader.setInt("material.diffuse", 0);
     ourShader.setVec3("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
     ourShader.setFloat("material.shininess", 32.0f);
 
-    ourShader.setVec3("light.ambient", glm::vec3(0.1f, 0.0f, 0.6f));
+    ourShader.setVec3("light.ambient", glm::vec3(0.1f, 0.1f, 0.1f));
     ourShader.setVec3("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
     ourShader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, diffuseMap);
 
     glm::mat4 view;
     view = camera->GetViewMatrix();
