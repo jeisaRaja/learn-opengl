@@ -28,7 +28,7 @@ glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 float cameraSpeed = 0.5f;
 
-void load_image(void);
+unsigned int load_image(std::string filepath);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
   glViewport(0, 0, width, height);
@@ -155,8 +155,9 @@ int main() {
   Shader lightShader("./shaders/lightVertexShader.vs",
                      "./shaders/lightFragmentShader.fs");
 
-  load_image();
-  unsigned int diffuseMap = texture;
+  unsigned int diffuseMap = load_image("./images/green_metal_rust_diff_1k.jpg");
+  unsigned int specularMap =
+      load_image("./images/green_metal_rust_rough_1k.jpg");
 
   glEnable(GL_DEPTH_TEST);
 
@@ -178,7 +179,7 @@ int main() {
     ourShader.setVec3("viewPos", camera->position);
 
     ourShader.setInt("material.diffuse", 0);
-    ourShader.setVec3("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+    ourShader.setInt("material.specular", 1);
     ourShader.setFloat("material.shininess", 32.0f);
 
     ourShader.setVec3("light.ambient", glm::vec3(0.1f, 0.1f, 0.1f));
@@ -187,6 +188,9 @@ int main() {
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, diffuseMap);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, specularMap);
 
     glm::mat4 view;
     view = camera->GetViewMatrix();
@@ -237,11 +241,11 @@ int main() {
   return 0;
 }
 
-void load_image(void) {
+unsigned int load_image(std::string filepath) {
+  unsigned int textureId;
+  glGenTextures(1, &textureId);
 
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-
+  glBindTexture(GL_TEXTURE_2D, textureId);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -250,16 +254,18 @@ void load_image(void) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   unsigned char *data =
-      stbi_load("./images/pebbles.jpg", &width, &height, &nrChannels, 0);
+      stbi_load(filepath.c_str(), &width, &height, &nrChannels, 0);
   if (data) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
                  GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
   } else {
-    std::cout << "Failed to load texture" << std::endl;
+    std::cout << "Failed to load texture " << filepath << std::endl;
   }
 
   stbi_image_free(data);
+
+  return textureId;
 }
 
 void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
