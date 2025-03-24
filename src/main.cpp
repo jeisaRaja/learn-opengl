@@ -3,6 +3,7 @@
 #include "camera/camera.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/vector_float3.hpp"
 #include "glm/fwd.hpp"
 #include "glm/trigonometric.hpp"
 #include "shaders/shader.h"
@@ -10,8 +11,8 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <iostream>
+#include <string>
 
-int width, height, nrChannels;
 unsigned int texture;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -28,7 +29,7 @@ glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 float cameraSpeed = 0.5f;
 
-unsigned int load_image(std::string filepath);
+unsigned int load_image(const std::string filepath);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
   glViewport(0, 0, width, height);
@@ -174,16 +175,16 @@ int main() {
     lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;
 
     ourShader.use();
-    ourShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-    ourShader.setVec3("lightPos", lightPos);
     ourShader.setVec3("viewPos", camera->position);
 
     ourShader.setInt("material.diffuse", 0);
     ourShader.setInt("material.specular", 1);
     ourShader.setFloat("material.shininess", 32.0f);
 
-    ourShader.setVec3("light.ambient", glm::vec3(0.1f, 0.1f, 0.1f));
-    ourShader.setVec3("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+    glm::vec3 lightDir = glm::vec3(-0.2f, -1.0f, -0.3f);
+    ourShader.setVec3("light.direction", lightDir);
+    ourShader.setVec3("light.ambient", glm::vec3(0.3f, 0.7f, 0.1f));
+    ourShader.setVec3("light.diffuse", glm::vec3(0.5f, 0.8f, 0.5f));
     ourShader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
 
     glActiveTexture(GL_TEXTURE0);
@@ -216,16 +217,16 @@ int main() {
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 
-    lightShader.use();
-    lightShader.setMat4("projection", projection);
-    lightShader.setMat4("view", view);
-
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, lightPos);
-    model = glm::scale(model, glm::vec3(0.1f));
-    lightShader.setVec3("lightPos", lightPos);
-    lightShader.setMat4("model", model);
-    lightShader.setVec3("viewPos", camera->position);
+    /*lightShader.use();*/
+    /*lightShader.setMat4("projection", projection);*/
+    /*lightShader.setMat4("view", view);*/
+    /**/
+    /*model = glm::mat4(1.0f);*/
+    /*model = glm::translate(model, lightPos);*/
+    /*model = glm::scale(model, glm::vec3(0.1f));*/
+    /*lightShader.setVec3("lightPos", lightPos);*/
+    /*lightShader.setMat4("model", model);*/
+    /*lightShader.setVec3("viewPos", camera->position);*/
 
     glBindVertexArray(lightVAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -241,30 +242,42 @@ int main() {
   return 0;
 }
 
-unsigned int load_image(std::string filepath) {
+unsigned int load_image(const std::string filepath) {
   unsigned int textureId;
   glGenTextures(1, &textureId);
-
   glBindTexture(GL_TEXTURE_2D, textureId);
+
+  int width, height, nrChannels;
+  unsigned char *data =
+      stbi_load(filepath.c_str(), &width, &height, &nrChannels, 0);
+
+  if (!data) {
+    std::cerr << "Failed to load texture: " << filepath << std::endl;
+    glDeleteTextures(1, &textureId);
+    return 0;
+  }
+
+  GLenum format;
+  if (nrChannels == 1)
+    format = GL_RED;
+  else if (nrChannels == 3)
+    format = GL_RGB;
+  else if (nrChannels == 4)
+    format = GL_RGBA;
+  else
+    format = GL_RGB;
+
+  glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
+               GL_UNSIGNED_BYTE, data);
+  glGenerateMipmap(GL_TEXTURE_2D);
+
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
                   GL_LINEAR_MIPMAP_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  unsigned char *data =
-      stbi_load(filepath.c_str(), &width, &height, &nrChannels, 0);
-  if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-                 GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  } else {
-    std::cout << "Failed to load texture " << filepath << std::endl;
-  }
-
   stbi_image_free(data);
-
   return textureId;
 }
 
