@@ -181,11 +181,24 @@ int main() {
     ourShader.setInt("material.specular", 1);
     ourShader.setFloat("material.shininess", 32.0f);
 
+    // For DirectionalLight
     glm::vec3 lightDir = glm::vec3(-0.2f, -1.0f, -0.3f);
-    ourShader.setVec3("light.direction", lightDir);
+    ourShader.setVec3("lightDir", lightDir);
+    /*ourShader.setVec3("light.direction", lightDir);*/
+
+    ourShader.setVec3("light.position", camera->position);
+    ourShader.setVec3("light.direction", camera->front);
+    ourShader.setFloat("light.cutoff", glm::cos(glm::radians(12.5f)));
+    ourShader.setFloat("light.outerCutoff", glm::cos(glm::radians(22.5f)));
+
     ourShader.setVec3("light.ambient", glm::vec3(0.3f, 0.7f, 0.1f));
     ourShader.setVec3("light.diffuse", glm::vec3(0.5f, 0.8f, 0.5f));
     ourShader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+
+    // For PointLight
+    ourShader.setFloat("light.constant", 1.0f);
+    ourShader.setFloat("light.linear", 0.09f);
+    ourShader.setFloat("light.quadratic", 0.032f);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, diffuseMap);
@@ -217,16 +230,16 @@ int main() {
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 
-    /*lightShader.use();*/
-    /*lightShader.setMat4("projection", projection);*/
-    /*lightShader.setMat4("view", view);*/
-    /**/
-    /*model = glm::mat4(1.0f);*/
-    /*model = glm::translate(model, lightPos);*/
-    /*model = glm::scale(model, glm::vec3(0.1f));*/
-    /*lightShader.setVec3("lightPos", lightPos);*/
-    /*lightShader.setMat4("model", model);*/
-    /*lightShader.setVec3("viewPos", camera->position);*/
+    lightShader.use();
+    lightShader.setMat4("projection", projection);
+    lightShader.setMat4("view", view);
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, lightPos);
+    model = glm::scale(model, glm::vec3(0.1f));
+    lightShader.setVec3("lightPos", lightPos);
+    lightShader.setMat4("model", model);
+    lightShader.setVec3("viewPos", camera->position);
 
     glBindVertexArray(lightVAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
