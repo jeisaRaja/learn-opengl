@@ -151,10 +151,10 @@ int main() {
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   // Create the shader object
-  Shader ourShader("./shaders/vertex_shader.vs",
-                   "./shaders/fragment_shader.fs");
-  Shader lightShader("./shaders/lightVertexShader.vs",
-                     "./shaders/lightFragmentShader.fs");
+  Shader ourShader("./shaders/vertex_shader.vert",
+                   "./shaders/fragment_shader.frag");
+  Shader lightShader("./shaders/lightVertexShader.vert",
+                     "./shaders/lightFragmentShader.frag");
 
   unsigned int diffuseMap = load_image("./images/green_metal_rust_diff_1k.jpg");
   unsigned int specularMap =
@@ -181,24 +181,50 @@ int main() {
     ourShader.setInt("material.specular", 1);
     ourShader.setFloat("material.shininess", 32.0f);
 
-    // For DirectionalLight
+    // For DirLight
     glm::vec3 lightDir = glm::vec3(-0.2f, -1.0f, -0.3f);
-    ourShader.setVec3("lightDir", lightDir);
-    /*ourShader.setVec3("light.direction", lightDir);*/
+    ourShader.setVec3("dirLight.direction", lightDir);
+    ourShader.setVec3("dirLight.ambient", glm::vec3(0.3f, 0.4f, 0.1f));
+    ourShader.setVec3("dirLight.diffuse", glm::vec3(0.5f, 0.6f, 0.1f));
+    ourShader.setVec3("dirLight.specullar", glm::vec3(0.2f, 0.2f, 0.1f));
 
-    ourShader.setVec3("light.position", camera->position);
-    ourShader.setVec3("light.direction", camera->front);
-    ourShader.setFloat("light.cutoff", glm::cos(glm::radians(12.5f)));
-    ourShader.setFloat("light.outerCutoff", glm::cos(glm::radians(22.5f)));
+    // For SpotLight
+    ourShader.setVec3("spotLight.position", camera->position);
+    ourShader.setVec3("spotLight.direction", camera->front);
+    ourShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
+    ourShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(22.5f)));
 
-    ourShader.setVec3("light.ambient", glm::vec3(0.3f, 0.7f, 0.1f));
-    ourShader.setVec3("light.diffuse", glm::vec3(0.5f, 0.8f, 0.5f));
-    ourShader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+    ourShader.setVec3("spotLight.ambient", glm::vec3(0.3f, 0.7f, 0.1f));
+    ourShader.setVec3("spotLight.diffuse", glm::vec3(0.5f, 0.8f, 0.5f));
+    ourShader.setVec3("spotLight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
 
-    // For PointLight
-    ourShader.setFloat("light.constant", 1.0f);
-    ourShader.setFloat("light.linear", 0.09f);
-    ourShader.setFloat("light.quadratic", 0.032f);
+    // Define point light positions
+    glm::vec3 pointLightPositions[] = {
+        glm::vec3(0.7f, 0.2f, 2.0f), glm::vec3(2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f, 2.0f, -12.0f), glm::vec3(0.0f, 0.0f, -3.0f)};
+
+    // Set up the point lights using their positions
+    for (int i = 0; i < 4; i++) {
+      std::string index = std::to_string(i);
+
+      ourShader.setVec3("pointLights[" + index + "].position",
+                        pointLightPositions[i]);
+
+      // Unique ambient, diffuse, and specular colors for each light
+      ourShader.setVec3("pointLights[" + index + "].ambient",
+                        glm::vec3(0.2f, 0.2f, 0.2f) + glm::vec3(0.05f * i));
+      ourShader.setVec3("pointLights[" + index + "].diffuse",
+                        glm::vec3(0.8f, 0.6f, 0.6f) -
+                            glm::vec3(0.1f * i, 0.05f * i, 0.0f));
+      ourShader.setVec3("pointLights[" + index + "].specular",
+                        glm::vec3(1.0f, 1.0f, 1.0f));
+
+      ourShader.setFloat("pointLights[" + index + "].constant", 1.0f);
+      ourShader.setFloat("pointLights[" + index + "].linear",
+                         0.07f + (0.01f * i));
+      ourShader.setFloat("pointLights[" + index + "].quadratic",
+                         0.017f + (0.005f * i));
+    }
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, diffuseMap);
